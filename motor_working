@@ -1,0 +1,109 @@
+#define BLYNK_PRINT Serial
+
+// #define BLYNK_TEMPLATE_ID " YOUR TEMPLATE ID " // Template ID in Developer Zone -> Template -> Firmware Configuration
+// #define BLYNK_TEMPLATE_NAME " YOUR TEMPLATE NAME " // Template Name in Developer Zone -> Template -> Firmware Configuration
+#define BLYNK_TEMPLATE_ID "TMPL66eVfDD1a"
+#define BLYNK_TEMPLATE_NAME "ISDN2400 GRP1"
+#define BLYNK_AUTH_TOKEN "g8Ojys8Kb9T4G_T0_omY8tvYXiS_9Xwd" // Authorization Token in Devices -> Device
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char ssid[] = "InX"; // Input the name of the WIFI here (You can use your phone's hotspot)
+char pass[] = "88866620222023"; // Input the Passwork of the WIFI here
+
+int Speed_Pin ; 
+//Motor Driver Pins
+const int IN1 = 47; 
+const int IN2 = 48; 
+int motorSpeed = 0;
+bool stateIN1 = 0;
+bool stateIN2 = 0;
+ 
+void setup ()  
+{
+  Serial.begin(115200);
+  // Motor
+  pinMode(IN1, OUTPUT);  // Set the pin as OUTPUT 
+  pinMode(IN2, OUTPUT);  // Set the pin as OUTPUT 
+  Serial.println("init");
+  Blynk.begin(auth, ssid, pass);
+
+}  
+void loop ()  
+{
+  Blynk.run();
+  delay(1);
+  Serial.print("forward");
+}
+
+BLYNK_WRITE(V0) // Forward
+{
+  // Serial.print("forward");
+  int pinValue1=param.asInt();
+  if (pinValue1==HIGH)
+  {
+    analogWrite(IN1, motorSpeed);
+    analogWrite(IN2, 0);
+    stateIN1 = 1;
+    stateIN2 = 0;
+  }
+  if (pinValue1==LOW)
+  {
+    analogWrite(IN1, 0);
+    analogWrite(IN2, 0);
+    stateIN1 = 0;
+    stateIN2 = 0;
+  }
+ }
+
+ 
+BLYNK_WRITE(V1) // Backward
+{
+  // Serial.print("Back");
+  int pinValue2=param.asInt();
+  if (pinValue2==HIGH)
+  {
+    analogWrite(IN1, 0);
+    analogWrite(IN2, motorSpeed);
+    stateIN1 = 0;
+    stateIN2 = 1;
+  }
+  if (pinValue2==LOW)
+  {
+    analogWrite(IN1, 0);
+    analogWrite(IN2, 0);
+    stateIN1 = 0;
+    stateIN2 = 0;
+  }
+}
+
+BLYNK_WRITE(V3) // Speed
+{
+  // Serial.print("speed");
+  int Motor_Speed=param.asInt();
+  motorSpeed = Motor_Speed;
+  if (stateIN1 == 1){
+    analogWrite(IN1, motorSpeed);
+  }
+  if (stateIN2 == 1){
+    analogWrite(IN2, motorSpeed);
+  }
+}
+
+BLYNK_WRITE(V2) // STOP
+{
+  int pinValue3=param.asInt();
+  if(pinValue3==HIGH)
+  {
+    analogWrite(IN1, 0);
+    analogWrite(IN2, 0);
+    stateIN1 = 0;
+    stateIN2 = 0;
+  }
+}
