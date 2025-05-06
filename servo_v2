@@ -1,0 +1,122 @@
+#define BLYNK_PRINT Serial
+#define BLYNK_TEMPLATE_ID "TMPL66eVfDD1a"
+#define BLYNK_TEMPLATE_NAME "ISDN2400 GRP1"
+#define BLYNK_AUTH_TOKEN "g8Ojys8Kb9T4G_T0_omY8tvYXiS_9Xwd"
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#include <ESP32Servo.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "ISD-Project-22Fall";
+char pass[] = "isd@2022Fall";
+
+Servo myServo;
+const int servoPin = 14;  //changing to pin 14
+const int minPulse = 500;
+const int maxPulse = 2500;
+
+// Control variables
+const int centerPos = 90;  // Neutral position (0-180)
+const int initialPos = 90;
+const int swingAmplitude = 60;
+int currentTarget = centerPos + swingAmplitude;
+int servoStep = 1;  // Speed of movement (1-10)
+bool isRunning = false;
+unsigned long lastMoveTime = 0;
+int moveDelay = 50;
+
+void setup() {
+  Serial.begin(115200);
+
+  // Initialize Servo
+  ESP32PWM::allocateTimer(0);
+  myServo.setPeriodHertz(50);
+  myServo.attach(servoPin, minPulse, maxPulse);
+  myServo.write(centerPos);
+
+  // Connect to Wifi
+  WiFi.begin(ssid, pass);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected!");
+
+  // Connect to Blynk
+  Blynk.begin(auth, ssid, pass);
+  Serial.println("Initialized - Waiting for commands...");
+}
+
+void loop() {
+  Blynk.run();
+
+  // Continuous movement control
+  if (isRunning) {
+    if (millis() - lastMoveTime > moveDelay) {
+      int currentPos = myServo.read();
+
+      if (currentPos < currentTarget) {
+        currentPos = min(currentPos + servoStep, currentTarget);
+      } else if (currentPos > currentTarget) {
+        currentPos = max(currentPos - servoStep, currentTarget);
+      }
+
+      myServo.write(currentPos);
+      lastMoveTime = millis();
+
+      if (currentPos == currentTarget) {
+        currentTarget = (currentTarget == centerPos + swingAmplitude) ? centerPos - swingAmplitude : centerPos + swingAmplitude;
+      }
+    }
+  }
+}
+
+
+
+// Forward movement (toward 180°)
+BLYNK_WRITE(V0) {
+  isRunning = param.asInt();
+  if (isRunning) {
+    Serial.println("Oscillation started");
+
+    int current = myServo.read();
+    currentTarget = (abs(current - (centerPos + swingAmplitude)) < abs(current - (centerPos - swingAmplitude))) ? centerPos - swingAmplitude : centerPos + swingAmplitude;
+  }
+}
+
+// // Backward movement (toward 0°)
+// BLYNK_WRITE(V1) {
+//   int pinValue = param.asInt();
+//   if (pinValue == HIGH) {
+//     movingBackward = true;
+//     movingForward = false;
+//     Serial.println("Moving BACKWARD");
+//   } else {
+//     movingBackward = false;
+//     Serial.println("Stopped BACKWARD");
+//   }
+// }
+
+// Emergency stop (returns to neutral)
+BLYNK_WRITE(V2) {
+  if (param.asInt()) {
+    isRunning = false;
+    myServo.write(initialPos);
+    Serial.println("Emergency stop, returned to center position");
+  }
+}
+
+// Speed control (1-10)
+BLYNK_WRITE(V3) {
+  servoStep = map(param.asInt(), 0, 255, 1, 10);
+  moveDelay = 110 - (servoStep * 10);
+  Serial.print("Speed set to: ");
+  Serial.println(servoStep);
+}
+
+// // Position feedback
+// BLYNK_READ(V4) {
+//   Blynk.virtualWrite(V4, servoPosition);
+//}
