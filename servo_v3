@@ -20,7 +20,7 @@ const int servoPin = 35;  //changing to pin 14
 // const int maxPulse = 2500;
 int position = 90;     // Initial position
 bool forward = false;  // Direction flag
-bool isRunning = false;
+// bool isRunning = false;
 
 void setup() {
   // myServo.setPeriodHertz(50);
@@ -61,8 +61,8 @@ void loop() {
 }
 
 BLYNK_WRITE(V0) {
-  isRunning = param.asInt();
-  if (isRunning) {
+  // isRunning = param.asInt();
+  if (param.asInt()) {
     forward = true;
   }
 }
