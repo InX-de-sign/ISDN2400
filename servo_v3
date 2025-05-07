@@ -1,0 +1,72 @@
+#define BLYNK_PRINT Serial
+#define BLYNK_TEMPLATE_ID "TMPL66eVfDD1a"
+#define BLYNK_TEMPLATE_NAME "ISDN2400 GRP1"
+#define BLYNK_AUTH_TOKEN "g8Ojys8Kb9T4G_T0_omY8tvYXiS_9Xwd"
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#include <ESP32Servo.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "InX";
+char pass[] = "88866620222023";
+  // char ssid[] = "ISD-Project-22Fall";
+  // char pass[] = "isd@2022Fall";
+
+Servo myServo;
+const int servoPin = 35;  //changing to pin 14
+// const int minPulse = 500;
+// const int maxPulse = 2500;
+int position = 90;     // Initial position
+bool forward = false;  // Direction flag
+bool isRunning = false;
+
+void setup() {
+  // myServo.setPeriodHertz(50);
+  myServo.attach(servoPin);
+  myServo.write(position);
+
+  // Connect to Wifi
+  // WiFi.begin(ssid, pass);
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(500);
+  //   Serial.print(".");
+  // }
+  // Serial.println("WiFi connected!");
+
+  // Connect to Blynk
+  Blynk.begin(auth, ssid, pass);
+  Serial.println("Initialized - Waiting for commands...");
+  delay(1000);  // Give servo time to stabilize
+}
+
+void loop() {
+  Blynk.run();
+
+  if (forward) {
+    position++;
+    if (position >= 150) {
+      forward = false;  // Change direction
+    }
+  } else {
+    position--;
+    if (position <= 30) {
+      forward = true;  // Change direction
+    }
+  }
+
+  myServo.write(position);  // Move servo
+  delay(10);                // Adjust speed (change this for smoother motion)
+}
+
+BLYNK_WRITE(V0) {
+  isRunning = param.asInt();
+  if (isRunning) {
+    forward = true;
+  }
+}
+
+// BLYNK_CONNECTED() {
+//   Blynk.syncVirtual(V0); // Sync the running state
+// }
